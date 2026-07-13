@@ -121,7 +121,7 @@ export class ApiFeatures {
 
   limitFields(input = "") {
     const rawFields = [input, this.query.fields].filter(Boolean).join(",");
-    if (!rawFields) return this;
+    const forbiddenFields = securityConfig.forbiddenFields || [];
 
     const fields = rawFields
       .split(",")
@@ -137,9 +137,18 @@ export class ApiFeatures {
 
     const project = {};
 
+    // Always exclude forbidden fields
+    for (const forbiddenField of forbiddenFields) {
+      project[forbiddenField] = 0;
+    }
+
+    // Process user-requested fields
     for (const field of fields) {
       const cleanField = field.replace(/^-/, "");
-      if (this._isForbiddenField(cleanField)) continue;
+      if (this._isForbiddenField(cleanField)) {
+        logger.warn(`Attempt to select forbidden field: ${cleanField}`);
+        continue;
+      }
       project[cleanField] = field.startsWith("-") ? 0 : 1;
     }
 
@@ -520,12 +529,18 @@ export class ApiFeatures {
   }
 
   _applyPopulateSelect({ path, select, isArray }) {
+    const forbiddenFields = securityConfig.forbiddenFields || [];
     const parsed = this._parseSelect(select);
-    if (!parsed.fields.length) return;
+    if (!parsed.fields.length && !forbiddenFields.length) return;
 
-    if (parsed.mode === "exclude") {
+    if (parsed.mode === "exclude" || forbiddenFields.length) {
+      const excludeFields = new Set([
+        ...forbiddenFields,
+        ...parsed.fields,
+      ]);
+
       this.pipeline.push({
-        $unset: parsed.fields.map((field) => `${path}.${field}`),
+        $unset: Array.from(excludeFields).map((field) => `${path}.${field}`),
       });
 
       return;
@@ -571,12 +586,18 @@ export class ApiFeatures {
   }
 
   _applyNestedObjectSelectInsideArray({ arrayPath, objectPath, select }) {
+    const forbiddenFields = securityConfig.forbiddenFields || [];
     const parsed = this._parseSelect(select);
-    if (!parsed.fields.length) return;
+    if (!parsed.fields.length && !forbiddenFields.length) return;
 
-    if (parsed.mode === "exclude") {
+    if (parsed.mode === "exclude" || forbiddenFields.length) {
+      const excludeFields = new Set([
+        ...forbiddenFields,
+        ...parsed.fields,
+      ]);
+
       this.pipeline.push({
-        $unset: parsed.fields.map(
+        $unset: Array.from(excludeFields).map(
           (field) => `${arrayPath}.${objectPath}.${field}`,
         ),
       });
@@ -618,13 +639,18 @@ export class ApiFeatures {
   }
 
   _parseSelect(select = "") {
+    const forbiddenFields = securityConfig.forbiddenFields || [];
     const fields = String(select)
       .split(/\s+/)
       .map((field) => field.trim())
       .filter(Boolean)
       .filter((field) => {
         const cleanField = field.replace(/^-/, "");
-        return !this._isForbiddenField(cleanField);
+        if (this._isForbiddenField(cleanField)) {
+          logger.warn(`Attempt to select forbidden field in populate: ${cleanField}`);
+          return false;
+        }
+        return true;
       });
 
     const hasInclude = fields.some((field) => !field.startsWith("-"));
@@ -639,7 +665,10 @@ export class ApiFeatures {
 
     return {
       mode: hasExclude ? "exclude" : "include",
-      fields: fields.map((field) => field.replace(/^-/, "")),
+      fields: [
+        ...forbiddenFields,
+        ...fields.map((field) => field.replace(/^-/, "")),
+      ],
     };
   }
 

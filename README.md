@@ -1,29 +1,51 @@
-# 🚀 Vanta API
+# 🚀 Vanta API - Complete NPM Package Documentation
 
-**Vanta API** is a lightweight, reusable API utility toolkit for **Express.js** and **Mongoose** applications.
+**Vanta API** is a powerful, production-ready utility toolkit for building secure, scalable APIs with **Express.js** and **Mongoose**. It provides advanced data filtering, searching, sorting, pagination, and population with built-in security features and error handling.
 
-It helps you build clean, secure, and production-friendly API endpoints with advanced filtering, search, sorting, pagination, populate, centralized error handling, and async route handling.
+---
+
+## Table of Contents
+
+1. [Features](#-features)
+2. [Installation](#-installation)
+3. [Quick Start](#quick-start)
+4. [Core Concepts](#core-concepts)
+5. [API Reference](#api-reference)
+   - [Constructor](#constructor)
+   - [filter()](#filter)
+   - [addManualFilters()](#addmanualfilters)
+   - [search()](#search)
+   - [sort()](#sort)
+   - [limitFields()](#limitfields)
+   - [populate()](#populate)
+   - [paginate()](#paginate)
+   - [execute()](#execute)
+6. [Real-World Examples](#real-world-examples)
+7. [Error Handling](#error-handling)
+8. [Security Configuration](#security-configuration)
+9. [Best Practices](#best-practices)
 
 ---
 
 ## ✨ Features
 
-- Advanced query filtering
-- Manual server-side filters
-- Recursive `$and`, `$or`, `$nor` filter support
-- Automatic `ObjectId` conversion
-- Search using `q`
-- Case-insensitive regex search
-- Sorting
-- Field limiting / projection
-- Pagination
-- Aggregation-based populate
-- Nested populate support
-- Role-based security limits
-- Forbidden field protection
-- Async route wrapper
-- Centralized Express error handler
-- Custom operational error class
+| Feature | Description |
+|---------|-------------|
+| **Advanced Filtering** | Complex query operators with automatic type conversion |
+| **Server-Side Filters** | Enforce backend conditions without exposing to users |
+| **Logical Operators** | Recursive `$and`, `$or`, `$nor` support with dot notation |
+| **Automatic Type Conversion** | Convert strings to ObjectId, booleans, and numbers intelligently |
+| **Full-Text Search** | Case-insensitive regex search across multiple fields |
+| **Sorting** | Multi-field sorting with `-` prefix for descending |
+| **Field Projection** | Include/exclude fields with forbidden field protection |
+| **Pagination** | Cursor-based and skip-limit pagination with role-based limits |
+| **Aggregation-Based Populate** | MongoDB `$lookup` with nested populate support |
+| **Nested Populate** | Deep population with select and role-based access control |
+| **Role-Based Security** | Access levels with max limits and allowed operations |
+| **Forbidden Field Protection** | Automatically block sensitive fields from all results |
+| **Request Sanitization** | Prevent NoSQL injection attacks |
+| **Async Error Handling** | Centralized error management with custom error classes |
+| **Express Integration** | Seamless integration with Express error middleware |
 
 ---
 
@@ -33,252 +55,388 @@ It helps you build clean, secure, and production-friendly API endpoints with adv
 npm install vanta-api
 ```
 
-Required dependencies in your app:
+### Prerequisites
+
+Your project must have these dependencies:
 
 ```bash
-npm install express mongoose
+npm install express mongoose pluralize winston
 ```
 
----
+### Peer Dependencies
 
-## 📁 Project Files
-
-```txt
-src/
-  api-features.js
-  catchAsync.js
-  config.js
-  errorHandler.js
-  handleError.js
-  security-default-config.js
-```
-
-| File | Purpose |
-|---|---|
-| `api-features.js` | Main API query builder for filtering, search, sorting, pagination, populate, and execution |
-| `catchAsync.js` | Wraps async Express route handlers and forwards errors to `next()` |
-| `errorHandler.js` | Global Express error middleware |
-| `handleError.js` | Custom operational error class |
-| `config.js` | Loads and merges security configuration |
-| `security-default-config.js` | Default security rules and role-based limits |
-
----
-
-# 🇬🇧 English Documentation
-
-## Quick Start
-
-```js
-import ApiFeatures,{catchAsync,catchError,HandleERROR} from "vanta-api";
-
-```
-
-Example controller:
-
-```js
-export const getProducts = catchAsync(async (req, res, next) => {
-  const result = await new ApiFeatures(Product, req.query, req.user?.role)
-    .filter()
-    .search(["name", "description"])
-    .sort()
-    .limitFields()
-    .paginate()
-    .execute();
-
-  res.status(200).json(result);
-});
-```
-
----
-
-# ApiFeatures
-
-`ApiFeatures` is the main class of this package. It converts request query parameters and manual backend filters into a MongoDB aggregation pipeline.
-
-## Constructor
-
-```js
-new ApiFeatures(model, query, userRole)
-```
-
-| Parameter | Type | Required | Description |
-|---|---|---|---|
-| `model` | Mongoose Model | Yes | The Mongoose model used to run aggregation |
-| `query` | Object | No | Usually `req.query` |
-| `userRole` | String | No | Role name used for security rules |
-
-Example:
-
-```js
-const features = new ApiFeatures(Product, req.query, req.user?.role);
-```
-
-If `userRole` is missing or invalid, the default role is `guest`.
-
----
-
-## Recommended Chain Order
-
-```js
-const result = await new ApiFeatures(Model, req.query, req.user?.role)
-  .addManualFilters(serverSideFilters)
-  .filter()
-  .populate(populateOptions)
-  .search(["name", "description"])
-  .sort()
-  .limitFields()
-  .paginate()
-  .execute();
-```
-
-Why this order?
-
-1. `addManualFilters()` adds backend-controlled filters.
-2. `filter()` creates the base `$match`.
-3. `populate()` joins referenced documents.
-4. `search()` searches normal or populated fields.
-5. `sort()` sorts final results.
-6. `limitFields()` controls output fields.
-7. `paginate()` applies paging.
-8. `execute()` runs the aggregation.
-
----
-
-## `filter()`
-
-Builds a MongoDB `$match` stage from `req.query`.
-
-```js
-new ApiFeatures(Product, req.query)
-  .filter()
-  .execute();
-```
-
-### Simple Filter
-
-```txt
-GET /api/products?category=phone
-```
-
-Generated filter:
-
-```js
+```json
 {
-  category: "phone"
-}
-```
-
-### Comparison Operators
-
-```txt
-GET /api/products?price[gte]=100&price[lte]=500
-```
-
-Generated filter:
-
-```js
-{
-  price: {
-    $gte: 100,
-    $lte: 500
+  "peerDependencies": {
+    "mongoose": "^7 || ^8 || ^9"
   }
 }
 ```
 
-### Boolean / Null / Number Conversion
+---
 
-```txt
-GET /api/products?isActive=true&deletedAt=null&price=100
+## Quick Start
+
+### 1. Basic Setup
+
+```javascript
+import express from "express";
+import ApiFeatures, { catchAsync, catchError } from "vanta-api";
+import Product from "./models/Product.js";
+
+const app = express();
+app.use(express.json());
+
+// Simple endpoint
+app.get(
+  "/api/products",
+  catchAsync(async (req, res) => {
+    const result = await new ApiFeatures(Product, req.query, req.user?.role)
+      .filter()
+      .search(["name", "description"])
+      .sort()
+      .limitFields()
+      .paginate()
+      .execute();
+
+    res.json(result);
+  })
+);
+
+// Global error handler (must be last)
+app.use(catchError);
+
+app.listen(3000);
 ```
 
-Generated values:
+### 2. Create Security Config (optional)
 
-```js
-{
-  isActive: true,
-  deletedAt: null,
-  price: 100
-}
+In your project root, create `security-config.js`:
+
+```javascript
+export const securityConfig = {
+  forbiddenFields: ["password", "refreshToken"],
+  allowedOperators: ["eq", "ne", "gt", "gte", "lt", "lte", "in", "nin", "regex"],
+  accessLevels: {
+    guest: { maxLimit: 50, allowedPopulate: ["*"] },
+    user: { maxLimit: 100, allowedPopulate: ["*"] },
+    admin: { maxLimit: 1000, allowedPopulate: ["*"] }
+  }
+};
 ```
 
-Strings with leading zero are preserved:
+### 3. Make Your First Request
 
-```txt
-GET /api/users?code=0012
+```bash
+# Basic filter
+curl "http://localhost:3000/api/products?category=electronics"
+
+# With sorting and pagination
+curl "http://localhost:3000/api/products?sort=-createdAt&page=1&limit=10"
+
+# With search
+curl "http://localhost:3000/api/products?q=iphone"
+
+# With field limiting
+curl "http://localhost:3000/api/products?fields=name,price,-_id"
 ```
 
-```js
-{
-  code: "0012"
-}
+---
+
+## Core Concepts
+
+### Method Chaining
+
+All methods return `this` for chainable API:
+
+```javascript
+const result = await new ApiFeatures(Model, req.query, userRole)
+  .method1()
+  .method2()
+  .method3()
+  .execute();
 ```
 
-### ObjectId Conversion
+### Recommended Execution Order
 
-Fields like `_id`, `id`, and fields ending with `id` are converted to `ObjectId` when the value is a strict MongoDB ObjectId.
-
-```txt
-GET /api/products?_id=665f0f6f4e7d9a2e2c123456
+```javascript
+const result = await new ApiFeatures(Model, req.query, userRole)
+  .addManualFilters(serverFilters)    // 1. Add backend filters
+  .filter()                            // 2. Apply URL filters
+  .populate(populateOptions)           // 3. Join related data
+  .search(["name", "description"])     // 4. Full-text search
+  .sort()                              // 5. Order results
+  .limitFields()                       // 6. Project fields
+  .paginate()                          // 7. Apply pagination
+  .execute();                          // 8. Run aggregation
 ```
 
-```js
-{
-  _id: ObjectId("665f0f6f4e7d9a2e2c123456")
-}
+### MongoDB Aggregation Pipeline
+
+ApiFeatures internally builds a MongoDB aggregation pipeline:
+
+```javascript
+[
+  { $match: { category: "electronics" } },
+  { $lookup: { from: "brands", ... } },
+  { $match: { $or: [...search conditions...] } },
+  { $sort: { createdAt: -1 } },
+  { $project: { name: 1, price: 1 } },
+  { $skip: 0 },
+  { $limit: 10 }
+]
 ```
 
-Reserved query keys are excluded from normal filtering:
+---
 
-```js
+## API Reference
+
+### Constructor
+
+Creates a new ApiFeatures instance for processing a query.
+
+```javascript
+new ApiFeatures(model, query, userRole)
+```
+
+**Parameters:**
+
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| `model` | Mongoose Model | ✅ Yes | - | The Mongoose model to query |
+| `query` | Object | ❌ No | `{}` | Query object (typically `req.query`) |
+| `userRole` | String | ❌ No | `"guest"` | User's role for security rules |
+
+**Examples:**
+
+```javascript
+// Basic usage
+const features = new ApiFeatures(User, req.query);
+
+// With user role
+const features = new ApiFeatures(Post, req.query, req.user?.role);
+
+// With empty query
+const features = new ApiFeatures(Product, {}, "admin");
+```
+
+**Properties Initialized:**
+
+- `this.model` - The Mongoose model
+- `this.query` - Copy of the input query object
+- `this.pipeline` - MongoDB aggregation pipeline (empty array)
+- `this.manualFilters` - Backend-enforced filters
+- `this.userRole` - Determined security role
+- `this.useCursor` - Cursor mode flag
+
+---
+
+### `filter()`
+
+Builds MongoDB `$match` stage from query parameters.
+
+```javascript
+.filter()
+```
+
+**Returns:** `this` (for chaining)
+
+**Features:**
+- Parses query parameters into MongoDB filters
+- Applies security filtering (removes forbidden fields)
+- Normalizes logical operators
+- Converts types intelligently
+- Blocks injection attacks
+
+**Examples:**
+
+#### Simple Equality Filter
+
+```javascript
+// URL: GET /api/products?category=electronics&brand=apple
+
+new ApiFeatures(Product, req.query)
+  .filter()
+  .execute();
+
+// Generated $match:
+// { category: "electronics", brand: "apple" }
+```
+
+#### Comparison Operators
+
+```javascript
+// URL: GET /api/products?price[gte]=100&price[lte]=500
+
+new ApiFeatures(Product, req.query)
+  .filter()
+  .execute();
+
+// Generated $match:
+// { price: { $gte: 100, $lte: 500 } }
+```
+
+**Supported Operators:** `eq`, `ne`, `gt`, `gte`, `lt`, `lte`, `in`, `nin`, `regex`, `exists`, `size`, `or`, `and`
+
+#### Multiple Values (CSV)
+
+```javascript
+// URL: GET /api/products?tags=electronics,phone,cheap
+
+new ApiFeatures(Product, req.query)
+  .filter()
+  .execute();
+
+// Generated $match:
+// { tags: ["electronics", "phone", "cheap"] }
+```
+
+#### ObjectId Conversion
+
+```javascript
+// URL: GET /api/products?userId=665f0f6f4e7d9a2e2c123456
+
+new ApiFeatures(Product, req.query)
+  .filter()
+  .execute();
+
+// Generated $match:
+// { userId: ObjectId("665f0f6f4e7d9a2e2c123456") }
+```
+
+**Auto-converts these fields to ObjectId:**
+- `_id`, `id`
+- Any field ending with `id` (e.g., `userId`, `productId`)
+- Fields in `$eq`, `$ne`, `$in`, `$nin` operators
+
+#### Type Conversions
+
+```javascript
+// URL: GET /api/products?isActive=true&price=99&code=00123&date=null
+
+new ApiFeatures(Product, req.query)
+  .filter()
+  .execute();
+
+// Generated $match:
+// { isActive: true, price: 99, code: "00123", date: null }
+```
+
+**Conversion Rules:**
+- `"true"` → `true`
+- `"false"` → `false`
+- `"null"` → `null`
+- Numbers without leading zeros → `Number`
+- Numbers with leading zeros → `String` (preserved)
+
+#### Reserved Keys (Ignored)
+
+These keys are never treated as filters:
+```javascript
 ["page", "limit", "sort", "fields", "populate", "q"]
 ```
 
 ---
 
-## `addManualFilters(filters)`
+### `addManualFilters()`
 
-Adds backend-controlled filters manually. This is useful when you want to enforce conditions that users should not control from the URL.
+Adds backend-enforced filters that cannot be bypassed by users.
 
-```js
-new ApiFeatures(Order, req.query)
-  .addManualFilters({ user: req.user._id })
+```javascript
+.addManualFilters(filters)
+```
+
+**Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `filters` | Object | MongoDB filter object to merge |
+
+**Returns:** `this` (for chaining)
+
+**Use Cases:**
+- Restrict data by user ownership
+- Enforce role-based visibility
+- Add automatic status filters
+- Secure multi-tenant queries
+
+**Examples:**
+
+#### Filter by Current User
+
+```javascript
+app.get(
+  "/api/my-posts",
+  catchAsync(async (req, res) => {
+    const result = await new ApiFeatures(Post, req.query, req.user?.role)
+      .addManualFilters({ userId: req.user._id })  // Only user's posts
+      .filter()
+      .execute();
+
+    res.json(result);
+  })
+);
+```
+
+#### Combine Multiple Manual Filters
+
+```javascript
+const result = await new ApiFeatures(Order, req.query)
+  .addManualFilters({
+    userId: req.user._id,      // User's orders only
+    isDeleted: false,           // Not deleted
+    status: { $ne: "cancelled" } // Not cancelled
+  })
   .filter()
   .execute();
 ```
 
-### `$and` Example
+#### Using Logical Operators
 
-```js
-const result = await new ApiFeatures(Product, req.query)
+```javascript
+const result = await new ApiFeatures(Product, req.query, "admin")
   .addManualFilters({
     $and: [
-      { _id: "665f0f6f4e7d9a2e2c123456" },
-      { isActive: true }
+      { isActive: true },
+      { stock: { $gt: 0 } }
     ]
   })
   .filter()
   .execute();
 ```
 
-The `_id` inside `$and` is recursively converted to `ObjectId`.
+#### Nested ObjectId in Logical Operators
 
-### `$or` Example
-
-```js
-const result = await new ApiFeatures(Product, req.query)
+```javascript
+const result = await new ApiFeatures(Post, req.query)
   .addManualFilters({
     $or: [
-      { ownerId: "665f0f6f4e7d9a2e2c123456" },
-      { createdById: "665f0f6f4e7d9a2e2c654321" }
+      { userId: "665f0f6f4e7d9a2e2c123456" },
+      { sharedWith: "665f0f6f4e7d9a2e2c123456" }
     ]
   })
   .filter()
   .execute();
+
+// ObjectIds in $or are automatically converted!
 ```
 
-### `$nor` Example
+#### `$in` Operator
 
-```js
+```javascript
+const result = await new ApiFeatures(Product, req.query)
+  .addManualFilters({
+    _id: { $in: ["665f0f6f4e7d9a2e2c123456", "665f0f6f4e7d9a2e2c654321"] }
+  })
+  .filter()
+  .execute();
+
+// ObjectIds are converted automatically
+```
+
+#### `$nor` Operator
+
+```javascript
 const result = await new ApiFeatures(Product, req.query)
   .addManualFilters({
     $nor: [
@@ -290,840 +448,1267 @@ const result = await new ApiFeatures(Product, req.query)
   .execute();
 ```
 
-### `$in` Example
+#### Multiple Calls (Merged)
 
-```js
-const result = await new ApiFeatures(Product, req.query)
-  .addManualFilters({
-    _id: {
-      $in: [
-        "665f0f6f4e7d9a2e2c123456",
-        "665f0f6f4e7d9a2e2c654321"
-      ]
-    }
-  })
+```javascript
+const result = await new ApiFeatures(Post, req.query)
+  .addManualFilters({ isPublished: true })
+  .addManualFilters({ userId: req.user._id })
   .filter()
   .execute();
+
+// Both filters are merged
 ```
 
 ---
 
-## `search(fields)`
+### `search()`
 
-Searches using the `q` key from `req.query`. It always uses case-insensitive regex search.
+Performs case-insensitive full-text search using regex.
 
-```js
-.search(["name", "description"])
+```javascript
+.search(fields)
 ```
 
-```txt
-GET /api/products?q=iphone
-```
+**Parameters:**
 
-```js
-const result = await new ApiFeatures(Product, req.query)
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `fields` | Array | Field names to search in |
+
+**Returns:** `this` (for chaining)
+
+**Features:**
+- Case-insensitive search
+- Searches multiple fields
+- Uses efficient regex
+- Escapes special characters
+- Creates `$or` conditions
+
+**Examples:**
+
+#### Simple Search
+
+```javascript
+// URL: GET /api/products?q=iphone
+
+new ApiFeatures(Product, req.query)
   .filter()
-  .search(["name", "description", "brand"])
+  .search(["name", "description"])
+  .execute();
+
+// Generated $or:
+// {
+//   $or: [
+//     { name: { $regex: "iphone", $options: "i" } },
+//     { description: { $regex: "iphone", $options: "i" } }
+//   ]
+// }
+```
+
+#### Search Multiple Fields
+
+```javascript
+// URL: GET /api/products?q=samsung
+
+new ApiFeatures(Product, req.query)
+  .filter()
+  .search(["name", "brand", "model", "description", "specs"])
+  .execute();
+```
+
+#### Search with Special Characters (Escaped)
+
+```javascript
+// URL: GET /api/posts?q=$pecial+char&.^
+
+new ApiFeatures(Post, req.query)
+  .search(["title", "content"])
+  .execute();
+
+// Special characters are escaped, prevents injection
+```
+
+#### No Search Query (Returns Early)
+
+```javascript
+// URL: GET /api/products
+
+new ApiFeatures(Product, req.query)
+  .search(["name", "description"])  // q not provided, skipped
+  .execute();
+```
+
+#### Empty Search Fields (Skipped)
+
+```javascript
+new ApiFeatures(Product, req.query)
+  .search([])  // Empty array, skipped
+  .execute();
+```
+
+#### Search with Sorting
+
+```javascript
+// URL: GET /api/products?q=phone&sort=-popularity,price
+
+new ApiFeatures(Product, req.query)
+  .filter()
+  .search(["name", "description"])
+  .sort()
   .paginate()
   .execute();
 ```
 
-Generated condition:
+#### Combined with Filter
 
-```js
-{
-  $or: [
-    { name: { $regex: "iphone", $options: "i" } },
-    { description: { $regex: "iphone", $options: "i" } },
-    { brand: { $regex: "iphone", $options: "i" } }
-  ]
-}
-```
+```javascript
+// URL: GET /api/products?category=electronics&q=iphone&price[lte]=1000
 
-`q` is reserved and is not treated as a normal filter.
+new ApiFeatures(Product, req.query)
+  .filter()                 // category + price filters
+  .search(["name", "model"]) // q search
+  .execute();
 
----
-
-## `sort()`
-
-Sorts results using the `sort` query key.
-
-```txt
-GET /api/products?sort=-createdAt,price
-```
-
-```js
-{
-  createdAt: -1,
-  price: 1
-}
-```
-
-Only fields existing in the model schema are accepted.
-
----
-
-## `limitFields(input)`
-
-Controls returned fields using projection.
-
-```txt
-GET /api/products?fields=name,price,category
-```
-
-or:
-
-```js
-.limitFields("name,price")
-```
-
-Include mode:
-
-```js
-{ name: 1, price: 1 }
-```
-
-Exclude mode:
-
-```txt
-GET /api/products?fields=-description
-```
-
-```js
-{ description: 0 }
-```
-
-Mixed include/exclude is not allowed:
-
-```txt
-GET /api/products?fields=name,-password
-```
-
-Throws:
-
-```txt
-Cannot mix include and exclude fields
+// Both filter and search are combined
 ```
 
 ---
 
-## `paginate()`
+### `sort()`
 
-Adds `$skip` and `$limit`.
+Sorts results by one or more fields.
 
-```txt
-GET /api/products?page=2&limit=10
+```javascript
+.sort()
 ```
 
-Pipeline:
+**Returns:** `this` (for chaining)
 
-```js
-[
-  { $skip: 10 },
-  { $limit: 10 }
-]
+**Features:**
+- Multi-field sorting
+- `-` prefix for descending order
+- Validates fields exist in schema
+- Ignores invalid fields silently
+
+**Examples:**
+
+#### Single Field Ascending
+
+```javascript
+// URL: GET /api/products?sort=price
+
+new ApiFeatures(Product, req.query)
+  .sort()
+  .execute();
+
+// Generated $sort:
+// { price: 1 }
 ```
 
-Limits are capped by role.
+#### Single Field Descending
+
+```javascript
+// URL: GET /api/products?sort=-createdAt
+
+new ApiFeatures(Product, req.query)
+  .sort()
+  .execute();
+
+// Generated $sort:
+// { createdAt: -1 }
+```
+
+#### Multiple Fields
+
+```javascript
+// URL: GET /api/products?sort=-popularity,price,name
+
+new ApiFeatures(Product, req.query)
+  .sort()
+  .execute();
+
+// Generated $sort:
+// { popularity: -1, price: 1, name: 1 }
+```
+
+#### Invalid Fields Ignored
+
+```javascript
+// URL: GET /api/products?sort=price,-invalidField,name
+
+new ApiFeatures(Product, req.query)
+  .sort()
+  .execute();
+
+// Generated $sort (invalidField removed):
+// { price: 1, name: 1 }
+```
+
+#### No Sort (Skipped)
+
+```javascript
+// URL: GET /api/products
+
+new ApiFeatures(Product, req.query)
+  .sort()  // sort not provided, skipped
+  .execute();
+```
+
+#### Sort with Pagination
+
+```javascript
+// URL: GET /api/products?sort=-rating&page=2&limit=20
+
+new ApiFeatures(Product, req.query)
+  .sort()
+  .paginate()
+  .execute();
+```
 
 ---
 
-## `populate(input)`
+### `limitFields()`
 
-Performs aggregation-based populate using `$lookup`.
+Controls which fields are returned (projection).
 
-```js
-.populate("user")
+```javascript
+.limitFields(input)
 ```
 
-From query:
+**Parameters:**
 
-```txt
-GET /api/posts?populate=user
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `input` | String | Optional field list (comma-separated) |
+
+**Returns:** `this` (for chaining)
+
+**Features:**
+- Include/exclude fields
+- Automatic forbidden field blocking
+- Prevents mixing include/exclude
+- Always includes `_id` in include mode
+- Logs attempts to access forbidden fields
+
+**Examples:**
+
+#### Include Specific Fields
+
+```javascript
+// URL: GET /api/products?fields=name,price,category
+
+new ApiFeatures(Product, req.query)
+  .limitFields()
+  .execute();
+
+// Generated $project:
+// { name: 1, price: 1, category: 1, password: 0 }
+// (password auto-excluded)
 ```
 
-Multiple populate paths:
+#### Exclude Specific Fields
 
-```js
-.populate(["user", "category"])
+```javascript
+// URL: GET /api/products?fields=-password,-refreshToken
+
+new ApiFeatures(Product, req.query)
+  .limitFields()
+  .execute();
+
+// Generated $project:
+// { password: 0, refreshToken: 0 }
 ```
 
-Nested populate:
+#### Programmatic Include
 
-```js
-.populate({
-  path: "user",
-  populate: {
-    path: "company",
+```javascript
+new ApiFeatures(Product, req.query)
+  .limitFields("name,price,category")  // Pass as string
+  .execute();
+```
+
+#### Programmatic Exclude
+
+```javascript
+new ApiFeatures(Product, req.query)
+  .limitFields("-password,-token")
+  .execute();
+```
+
+#### Auto-Include _id
+
+```javascript
+// URL: GET /api/products?fields=name,price
+
+new ApiFeatures(Product, req.query)
+  .limitFields()
+  .execute();
+
+// _id is always included:
+// { _id: 1, name: 1, price: 1 }
+```
+
+#### Forbidden Fields Always Blocked
+
+```javascript
+// URL: GET /api/users?fields=name,email,password,apiKey
+
+// securityConfig.forbiddenFields: ["password", "apiKey"]
+
+new ApiFeatures(User, req.query)
+  .limitFields()
+  .execute();
+
+// password and apiKey are blocked:
+// { _id: 1, name: 1, email: 1, password: 0, apiKey: 0 }
+```
+
+#### Forbidden Field Removal in Exclude Mode
+
+```javascript
+// URL: GET /api/users?fields=-profilePicture
+
+// securityConfig.forbiddenFields: ["password", "refreshToken"]
+
+new ApiFeatures(User, req.query)
+  .limitFields()
+  .execute();
+
+// Forbidden fields always excluded:
+// { profilePicture: 0, password: 0, refreshToken: 0 }
+```
+
+#### Combined with Manual Input
+
+```javascript
+new ApiFeatures(Product, req.query)
+  .limitFields("name,price")  // Manual input
+  .execute();
+
+// Even if user provides fields in URL, manual takes precedence
+```
+
+#### Invalid: Mixed Include/Exclude
+
+```javascript
+// URL: GET /api/products?fields=name,-password
+
+new ApiFeatures(Product, req.query)
+  .limitFields()
+  .execute();
+
+// Error: "Cannot mix include and exclude fields"
+```
+
+---
+
+### `populate()`
+
+Joins related documents using aggregation `$lookup`.
+
+```javascript
+.populate(input)
+```
+
+**Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `input` | String/Object/Array | Path(s) to populate |
+
+**Returns:** `this` (for chaining)
+
+**Features:**
+- Single and multiple populate
+- Nested populate support
+- Field selection with forbidden field protection
+- Dot notation support
+- Role-based access control
+- Preserves array relationships
+
+**Examples:**
+
+#### Simple Populate
+
+```javascript
+// URL: GET /api/posts?populate=user
+
+new ApiFeatures(Post, req.query)
+  .populate("user")
+  .execute();
+
+// Generated $lookup:
+// { $lookup: { from: "users", localField: "userId", foreignField: "_id", as: "user" } }
+// { $unwind: { path: "$user", preserveNullAndEmptyArrays: true } }
+```
+
+#### Populate from Query
+
+```javascript
+// URL: GET /api/posts?populate=user,category
+
+new ApiFeatures(Post, req.query)
+  .populate()  // No argument, uses req.query.populate
+  .execute();
+```
+
+#### Multiple Paths Programmatically
+
+```javascript
+new ApiFeatures(Post, req.query)
+  .populate(["user", "category", "tags"])
+  .execute();
+```
+
+#### Nested Populate
+
+```javascript
+new ApiFeatures(Post, req.query)
+  .populate({
+    path: "user",
     populate: {
-      path: "country"
+      path: "company",
+      populate: {
+        path: "country"
+      }
     }
-  }
-})
+  })
+  .execute();
+
+// Generates nested $lookup stages
 ```
 
-Dot notation:
+#### Dot Notation (Shorthand)
 
-```js
-.populate("user.company.country")
+```javascript
+new ApiFeatures(Post, req.query)
+  .populate("user.company.country")
+  .execute();
+
+// Same as nested populate above, more concise
 ```
 
-Populate with select:
+#### Populate with Field Selection
 
-```js
-.populate({
-  path: "user",
-  select: "name email"
-})
+```javascript
+new ApiFeatures(Post, req.query)
+  .populate({
+    path: "user",
+    select: "name email profile"
+  })
+  .execute();
+
+// User documents include only: _id, name, email, profile
 ```
 
-Exclude fields:
+#### Exclude Fields in Populate
 
-```js
-.populate({
-  path: "user",
-  select: "-password"
-})
+```javascript
+new ApiFeatures(Post, req.query)
+  .populate({
+    path: "user",
+    select: "-password -refreshToken"  // Exclude sensitive fields
+  })
+  .execute();
+
+// Forbidden fields are also excluded
 ```
 
-Mixed include/exclude is not allowed.
+#### Combine Include and Exclude (Error)
+
+```javascript
+new ApiFeatures(Post, req.query)
+  .populate({
+    path: "user",
+    select: "name -email"  // INVALID
+  })
+  .execute();
+
+// Error: "Cannot mix include and exclude in populate select"
+```
+
+#### Populate Arrays
+
+```javascript
+// Post has many comments
+
+new ApiFeatures(Post, req.query)
+  .populate({
+    path: "comments",
+    isArray: true
+  })
+  .execute();
+
+// Handles array relationships correctly
+```
+
+#### Nested Populate with Arrays
+
+```javascript
+new ApiFeatures(Post, req.query)
+  .populate({
+    path: "comments",
+    populate: {
+      path: "author"
+    }
+  })
+  .execute();
+
+// Each comment's author is populated
+```
+
+#### Populate with Complex Nesting
+
+```javascript
+new ApiFeatures(Order, req.query)
+  .populate([
+    {
+      path: "user",
+      select: "name email"
+    },
+    {
+      path: "items",
+      populate: {
+        path: "product",
+        select: "name price",
+        populate: {
+          path: "category",
+          select: "name"
+        }
+      }
+    },
+    {
+      path: "shipping",
+      select: "-notes"
+    }
+  ])
+  .execute();
+```
+
+#### Populate from URL with Select
+
+```javascript
+// URL: GET /api/posts?populate=user&user.select=name%20email
+
+new ApiFeatures(Post, req.query)
+  .populate()  // Parses both path and select from query
+  .execute();
+```
+
+#### Access Control on Populate
+
+```javascript
+// securityConfig for user role:
+// allowedPopulate: ["user", "category"]
+
+new ApiFeatures(Post, req.query, "user")
+  .populate("user")       // Allowed
+  .populate("category")   // Allowed
+  .populate("admin")      // Silently skipped
+  .execute();
+```
 
 ---
 
-## `execute(options)`
+### `paginate()`
 
-Runs the aggregation pipeline.
+Adds pagination to results.
 
-```js
-const result = await features.execute();
+```javascript
+.paginate()
 ```
 
-Returns:
+**Returns:** `this` (for chaining)
 
-```js
+**Features:**
+- Skip-limit pagination
+- Role-based max limits
+- Defaults to page 1, limit 10
+- Prevents negative values
+- Caps by user's access level
+
+**Examples:**
+
+#### Default Pagination
+
+```javascript
+// URL: GET /api/products
+
+new ApiFeatures(Product, req.query)
+  .paginate()
+  .execute();
+
+// Default: page 1, limit 10
+// Generated $skip: 0, $limit: 10
+```
+
+#### Custom Page and Limit
+
+```javascript
+// URL: GET /api/products?page=2&limit=20
+
+new ApiFeatures(Product, req.query)
+  .paginate()
+  .execute();
+
+// Skip: 10, Limit: 20
+```
+
+#### Large Page Request (Capped)
+
+```javascript
+// URL: GET /api/products?limit=10000 (user is 'guest')
+// securityConfig.guest.maxLimit: 50
+
+new ApiFeatures(Product, req.query, "guest")
+  .paginate()
+  .execute();
+
+// Actual limit: 50 (capped)
+```
+
+#### Admin Higher Limits
+
+```javascript
+// securityConfig.admin.maxLimit: 1000
+
+const result = await new ApiFeatures(Product, req.query, "admin")
+  .paginate()
+  .execute();
+
+// Admins can request up to 1000 items
+```
+
+#### Negative Page (Normalized)
+
+```javascript
+// URL: GET /api/products?page=-5
+
+new ApiFeatures(Product, req.query)
+  .paginate()
+  .execute();
+
+// page becomes 1 (minimum)
+```
+
+#### Pagination with Search and Sort
+
+```javascript
+// URL: GET /api/products?q=phone&sort=-rating&page=2&limit=15
+
+new ApiFeatures(Product, req.query)
+  .search(["name", "description"])
+  .sort()
+  .paginate()
+  .execute();
+
+// Returns page 2 with 15 items per page
+```
+
+#### Calculate Pagination Info
+
+```javascript
+const result = await new ApiFeatures(Product, req.query, "user")
+  .paginate()
+  .execute();
+
+const page = parseInt(req.query.page) || 1;
+const limit = parseInt(req.query.limit) || 10;
+const totalPages = Math.ceil(result.count / limit);
+
+console.log(`Page ${page} of ${totalPages} (${result.count} total)`);
+```
+
+---
+
+### `execute()`
+
+Runs the aggregation pipeline and returns results.
+
+```javascript
+await .execute(options)
+```
+
+**Parameters:**
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `options` | Object | `{}` | Execution options |
+| `options.debug` | Boolean | `false` | Log pipeline to console |
+| `options.useCursor` | Boolean | `false` | Use aggregation cursor |
+| `options.batchSize` | Number | `100` | Cursor batch size |
+| `options.maxTimeMS` | Number | `10000` | Query timeout in ms |
+| `options.allowDiskUse` | Boolean | `false` | Allow MongoDB disk spill |
+| `options.readConcern` | String | `"majority"` | MongoDB read concern |
+
+**Returns:** Promise resolving to result object
+
+**Result Format:**
+
+```javascript
 {
   success: true,
-  count: 25,
-  data: [...]
+  count: 25,           // Total documents matching query (before pagination)
+  data: [...]          // Documents (after pagination)
 }
 ```
 
-Options:
+**Examples:**
 
-```js
-.execute({
-  debug: true,
-  useCursor: false,
-  batchSize: 100,
-  maxTimeMS: 10000,
-  allowDiskUse: true,
-  readConcern: "majority"
-})
+#### Basic Execution
+
+```javascript
+const result = await new ApiFeatures(Product, req.query)
+  .filter()
+  .execute();
+
+// result = { success: true, count: 123, data: [...] }
 ```
 
-| Option | Type | Default | Description |
-|---|---|---|---|
-| `debug` | Boolean | `false` | Logs the pipeline |
-| `useCursor` | Boolean | `false` | Uses aggregation cursor |
-| `batchSize` | Number | `100` | Cursor batch size |
-| `maxTimeMS` | Number | `10000` | Max execution time |
-| `allowDiskUse` | Boolean | `false` | Allows disk usage |
-| `readConcern` | String | `majority` | MongoDB read concern |
+#### Debug Pipeline
 
----
+```javascript
+const result = await new ApiFeatures(Product, req.query)
+  .filter()
+  .search(["name"])
+  .sort()
+  .execute({ debug: true });
 
-# Full Controller Example
+// Logs complete pipeline to console
+```
 
-```js
-import ApiFeatures,{catchAsync} from "vanta-api";
-import Product from "../models/productModel.js";
+#### With Cursor for Large Results
 
-export const getProducts = catchAsync(async (req, res, next) => {
-  const result = await new ApiFeatures(Product, req.query, req.user?.role)
-    .addManualFilters({ isDeleted: false })
-    .filter()
-    .populate([
-      {
-        path: "category",
-        select: "name slug"
-      },
-      {
-        path: "createdBy",
-        select: "name email"
-      }
-    ])
-    .search(["name", "description", "category.name"])
-    .sort()
-    .limitFields()
-    .paginate()
+```javascript
+const result = await new ApiFeatures(Product, req.query)
+  .filter()
+  .execute({
+    useCursor: true,
+    batchSize: 500
+  });
+
+// Uses cursor for memory efficiency with large datasets
+```
+
+#### Increase Timeout
+
+```javascript
+const result = await new ApiFeatures(Post, req.query)
+  .search(["content"])
+  .execute({ maxTimeMS: 30000 });
+
+// 30-second timeout for slow queries
+```
+
+#### Large Sort with Disk Usage
+
+```javascript
+const result = await new ApiFeatures(Order, req.query)
+  .filter()
+  .sort()
+  .execute({ allowDiskUse: true });
+
+// Allows MongoDB to use disk for large sorts
+```
+
+#### Pipeline Size Limit Check
+
+```javascript
+try {
+  const result = await new ApiFeatures(Model, req.query)
+    .populate(["ref1", "ref2", "ref3"])
     .execute();
+} catch (err) {
+  if (err.message.includes("Too many pipeline stages")) {
+    // Default max: 80 stages (configurable)
+  }
+}
+```
 
-  res.status(200).json(result);
-});
+#### Full Options Example
+
+```javascript
+const result = await new ApiFeatures(Product, req.query, "admin")
+  .addManualFilters({ store: req.user.storeId })
+  .filter()
+  .populate(["category", "brand"])
+  .search(["name", "description"])
+  .sort()
+  .limitFields()
+  .paginate()
+  .execute({
+    debug: process.env.NODE_ENV === "development",
+    useCursor: true,
+    batchSize: 200,
+    maxTimeMS: 15000,
+    allowDiskUse: true,
+    readConcern: "majority"
+  });
+
+res.json(result);
 ```
 
 ---
 
-# Error Handling
+## Real-World Examples
 
-## `HandleERROR`
+### Example 1: E-Commerce Product Listing
 
-Custom operational error class.
+```javascript
+import express from "express";
+import ApiFeatures, { catchAsync, catchError } from "vanta-api";
+import Product from "./models/Product.js";
 
-```js
-import {HandleERROR} from "vanta-api";
-
-throw new HandleERROR("Product not found", 404);
-```
-
-Example properties:
-
-```js
-{
-  message: "Product not found",
-  statusCode: 404,
-  status: "fail",
-  isOperational: true
-}
-```
-
-For `4xx` errors, `status` is `fail`. For `5xx` errors, `status` is `error`.
-
-## `catchAsync`
-
-Wraps async Express handlers and removes repetitive `try/catch`.
-
-```js
-import {catchAsync} from "vanta-api";
+const app = express();
 
 app.get(
-  "/products",
-  catchAsync(async (req, res, next) => {
-    const products = await Product.find();
-    res.json(products);
+  "/api/products",
+  catchAsync(async (req, res) => {
+    // Filter by active products
+    const result = await new ApiFeatures(Product, req.query, req.user?.role)
+      .addManualFilters({ isActive: true, stock: { $gt: 0 } })
+      .filter()  // User filters: category, brand, price range
+      .search(["name", "description", "brand"])
+      .sort()    // Sort by price, rating, date
+      .limitFields()
+      .paginate()
+      .execute({ debug: process.env.DEBUG === "true" });
+
+    res.json(result);
+  })
+);
+
+app.use(catchError);
+app.listen(3000);
+
+// Example Requests:
+// GET /api/products
+// GET /api/products?category=electronics
+// GET /api/products?price[gte]=100&price[lte]=500&sort=-popularity
+// GET /api/products?q=iphone&fields=name,price&page=1&limit=20
+```
+
+### Example 2: Admin Dashboard with Role-Based Access
+
+```javascript
+import ApiFeatures, { catchAsync } from "vanta-api";
+import Order from "./models/Order.js";
+
+app.get(
+  "/api/admin/orders",
+  authMiddleware,
+  adminMiddleware,
+  catchAsync(async (req, res) => {
+    const result = await new ApiFeatures(Order, req.query, req.user.role)
+      .addManualFilters({
+        $or: [
+          { userId: req.user._id },  // Own orders
+          { adminApproved: true }     // Public orders
+        ]
+      })
+      .filter()
+      .populate([
+        { path: "user", select: "name email phone" },
+        { path: "items.product", select: "name price" }
+      ])
+      .sort()
+      .limitFields()
+      .paginate()
+      .execute();
+
+    res.json(result);
   })
 );
 ```
 
-Any rejected promise is forwarded to Express `next()`.
+### Example 3: API with Multiple Resource Formats
 
-## `errorHandler`
+```javascript
+import ApiFeatures, { catchAsync } from "vanta-api";
+import Post from "./models/Post.js";
 
-Global Express error middleware.
+app.get(
+  "/api/posts",
+  catchAsync(async (req, res) => {
+    let features = new ApiFeatures(Post, req.query, req.user?.role)
+      .addManualFilters({ status: "published" })
+      .filter()
+      .search(["title", "content"])
+      .sort();
 
-```js
-import {catchError} from "vanta-api";
+    // Different projections based on endpoint
+    if (req.path.includes("/preview")) {
+      features = features.limitFields("title,excerpt,thumbnail");
+    } else if (req.path.includes("/detailed")) {
+      features = features.limitFields();
+    }
 
+    const result = await features
+      .paginate()
+      .execute();
+
+    res.json(result);
+  })
+);
+```
+
+### Example 4: Nested Data with Conditional Population
+
+```javascript
+import ApiFeatures, { catchAsync } from "vanta-api";
+import Comment from "./models/Comment.js";
+
+app.get(
+  "/api/comments",
+  catchAsync(async (req, res) => {
+    let features = new ApiFeatures(Comment, req.query, req.user?.role)
+      .filter();
+
+    // Conditionally populate author data based on query
+    if (req.query.includeAuthor === "true") {
+      features = features.populate({
+        path: "author",
+        select: "-email"  // Hide email
+      });
+    }
+
+    // Conditionally populate nested replies
+    if (req.query.nested === "true") {
+      features = features.populate({
+        path: "replies",
+        populate: {
+          path: "author",
+          select: "name avatar"
+        }
+      });
+    }
+
+    const result = await features
+      .search(["content"])
+      .sort()
+      .paginate()
+      .execute();
+
+    res.json(result);
+  })
+);
+```
+
+### Example 5: Complex Filtering with Server-Side Rules
+
+```javascript
+import ApiFeatures, { catchAsync } from "vanta-api";
+import Article from "./models/Article.js";
+
+app.get(
+  "/api/articles",
+  catchAsync(async (req, res) => {
+    // Build dynamic server-side filters
+    let manualFilters = { status: "published" };
+
+    // Role-based visibility
+    if (req.user?.role === "subscriber") {
+      manualFilters.visibility = { $in: ["public", "subscriber"] };
+    } else if (req.user?.role === "premium") {
+      manualFilters.visibility = { $in: ["public", "subscriber", "premium"] };
+    } else {
+      manualFilters.visibility = "public";
+    }
+
+    const result = await new ApiFeatures(Article, req.query, req.user?.role)
+      .addManualFilters(manualFilters)
+      .filter()
+      .populate({
+        path: "author",
+        select: "name bio avatar"
+      })
+      .search(["title", "content", "author.name"])
+      .sort()
+      .limitFields()
+      .paginate()
+      .execute();
+
+    res.json(result);
+  })
+);
+```
+
+---
+
+## Error Handling
+
+### Using `catchAsync`
+
+Automatically catches async errors:
+
+```javascript
+import { catchAsync, HandleERROR } from "vanta-api";
+
+app.get(
+  "/api/products/:id",
+  catchAsync(async (req, res, next) => {
+    const product = await Product.findById(req.params.id);
+    if (!product) {
+      throw new HandleERROR("Product not found", 404);
+    }
+    res.json(product);
+  })
+);
+```
+
+### Global Error Middleware
+
+Must be registered last:
+
+```javascript
+import { catchError } from "vanta-api";
+
+// All routes here...
+
+// Error middleware (must be last)
 app.use(catchError);
 ```
 
-Example response:
+### Error Response Format
 
 ```json
 {
   "status": "fail",
   "success": false,
-  "message": "Product not found"
+  "message": "Invalid field in query"
 }
 ```
 
-Use it after all routes:
+### Custom Error Handler
 
-```js
-app.use("/api/products", productRouter);
-app.use(catchError);
+```javascript
+app.use((err, req, res, next) => {
+  const statusCode = err.statusCode || 500;
+  const status = err.status || "error";
+
+  res.status(statusCode).json({
+    status,
+    success: false,
+    message: err.message,
+    ...(process.env.NODE_ENV === "development" && { stack: err.stack })
+  });
+});
 ```
 
 ---
 
-# Security Configuration
+## Security Configuration
 
-Default security settings are stored in:
+### Default Configuration
 
-```txt
-src/security-default-config.js
-```
-
-You can override them by creating a `security-config.js` file in your project root.
-
-```js
+```javascript
+// src/security-default-config.js
 export const securityConfig = {
   allowedOperators: [
-    "eq",
-    "ne",
-    "gt",
-    "gte",
-    "lt",
-    "lte",
-    "in",
-    "nin",
-    "regex",
-    "exists"
+    "eq", "ne", "gt", "gte",
+    "lt", "lte", "in", "nin",
+    "regex", "exists", "size", "or", "and"
   ],
+  forbiddenFields: ["password"],
+  maxPipelineStages: 80,
+  accessLevels: {
+    guest: { maxLimit: 50, allowedPopulate: ["*"] },
+    user: { maxLimit: 100, allowedPopulate: ["*"] },
+    admin: { maxLimit: 1000, allowedPopulate: ["*"] }
+  }
+};
+```
 
-  forbiddenFields: ["password", "refreshToken", "resetPasswordToken"],
+### Custom Configuration
 
-  maxPipelineStages: 50,
+Create `security-config.js` in project root:
 
+```javascript
+export const securityConfig = {
+  allowedOperators: [
+    "eq", "ne", "gt", "gte", "lt", "lte",
+    "in", "nin", "regex", "exists"
+  ],
+  forbiddenFields: [
+    "password",
+    "refreshToken",
+    "resetPasswordToken",
+    "apiKey",
+    "secretKey"
+  ],
+  maxPipelineStages: 100,
   accessLevels: {
     guest: {
       maxLimit: 20,
-      allowedPopulate: ["category"]
+      allowedPopulate: ["category", "brand"]
     },
     user: {
       maxLimit: 100,
-      allowedPopulate: ["category", "createdBy"]
+      allowedPopulate: ["*"]
+    },
+    moderator: {
+      maxLimit: 500,
+      allowedPopulate: ["*"]
     },
     admin: {
-      maxLimit: 1000,
+      maxLimit: 5000,
+      allowedPopulate: ["*"]
+    },
+    superAdmin: {
+      maxLimit: 10000,
       allowedPopulate: ["*"]
     }
   }
 };
 ```
 
----
+### Configuration Options
 
-# Express Setup Example
+| Option | Type | Description |
+|--------|------|-------------|
+| `allowedOperators` | Array | MongoDB operators allowed in queries |
+| `forbiddenFields` | Array | Fields automatically blocked from all responses |
+| `maxPipelineStages` | Number | Maximum aggregation pipeline stages |
+| `accessLevels` | Object | Role-based access definitions |
 
-```js
-import express from "express";
-import {catchError} from "vanta-api";
-import productRouter from "./routes/productRoutes.js";
+### Forbidden Fields Example
 
-const app = express();
+```javascript
+forbiddenFields: ["password", "apiKey", "refreshToken", "creditCard"]
 
-app.use(express.json());
-app.use("/api/products", productRouter);
-app.use(catchError);
-
-export default app;
+// All queries will automatically exclude these fields
+// Even if user explicitly requests: ?fields=name,password
+// Result: password is still excluded
 ```
 
 ---
 
-# 🇮🇷 مستندات فارسی
+## Best Practices
 
-## شروع سریع
+### 1. Always Use Manual Filters for Security
 
-```js
-import ApiFeatures,{catchAsync,catchError,HandleERROR} from "vanta-api";
+```javascript
+// ✅ GOOD - Secure
+const result = await new ApiFeatures(Post, req.query)
+  .addManualFilters({ userId: req.user._id })  // User can only see own posts
+  .filter()
+  .execute();
 
+// ❌ BAD - Insecure
+const result = await new ApiFeatures(Post, req.query)
+  .filter()  // User could filter other users' posts
+  .execute();
 ```
 
-مثال controller:
+### 2. Chain Methods in Recommended Order
 
-```js
-export const getProducts = catchAsync(async (req, res, next) => {
-  const result = await new ApiFeatures(Product, req.query, req.user?.role)
-    .filter()
-    .search(["name", "description"])
-    .sort()
-    .limitFields()
-    .paginate()
-    .execute();
-
-  res.status(200).json(result);
-});
-```
-
----
-
-# ApiFeatures چیست؟
-
-`ApiFeatures` کلاس اصلی پکیج است. این کلاس از روی `req.query` و فیلترهای دستی سمت سرور، یک MongoDB aggregation pipeline می‌سازد.
-
-## Constructor
-
-```js
-new ApiFeatures(model, query, userRole)
-```
-
-| ورودی | نوع | اجباری | توضیح |
-|---|---|---|---|
-| `model` | Mongoose Model | بله | مدلی که aggregation روی آن اجرا می‌شود |
-| `query` | Object | خیر | معمولاً همان `req.query` |
-| `userRole` | String | خیر | نقش کاربر برای قوانین امنیتی |
-
-اگر `userRole` داده نشود یا معتبر نباشد، role پیش‌فرض `guest` استفاده می‌شود.
-
----
-
-## ترتیب پیشنهادی استفاده
-
-```js
-const result = await new ApiFeatures(Model, req.query, req.user?.role)
-  .addManualFilters(serverSideFilters)
+```javascript
+// ✅ GOOD
+const result = await new ApiFeatures(Model, req.query)
+  .addManualFilters(backendFilters)
   .filter()
   .populate(populateOptions)
-  .search(["name", "description"])
+  .search(searchFields)
   .sort()
   .limitFields()
   .paginate()
   .execute();
 ```
 
----
+### 3. Validate User Input
 
-## `filter()`
-
-از روی `req.query` مرحله‌ی `$match` می‌سازد.
-
-```txt
-GET /api/products?category=phone
-```
-
-```js
-{
-  category: "phone"
+```javascript
+// ✅ GOOD
+if (!Array.isArray(req.query.ids) || req.query.ids.length > 100) {
+  throw new HandleERROR("Invalid request", 400);
 }
-```
 
-operatorهای مقایسه‌ای:
-
-```txt
-GET /api/products?price[gte]=100&price[lte]=500
-```
-
-```js
-{
-  price: {
-    $gte: 100,
-    $lte: 500
-  }
-}
-```
-
-تبدیل‌های خودکار:
-
-```txt
-GET /api/products?isActive=true&deletedAt=null&price=100
-```
-
-```js
-{
-  isActive: true,
-  deletedAt: null,
-  price: 100
-}
-```
-
-کلیدهایی مثل `_id`, `id` و کلیدهایی که به `id` ختم می‌شوند، اگر مقدارشان ObjectId معتبر باشد، به `ObjectId` تبدیل می‌شوند.
-
----
-
-## `addManualFilters(filters)`
-
-برای اضافه کردن فیلترهای دستی سمت سرور استفاده می‌شود.
-
-```js
-new ApiFeatures(Order, req.query)
-  .addManualFilters({ user: req.user._id })
-  .filter()
-  .execute();
-```
-
-استفاده از `$and`:
-
-```js
 const result = await new ApiFeatures(Product, req.query)
-  .addManualFilters({
-    $and: [
-      { _id: "665f0f6f4e7d9a2e2c123456" },
-      { isActive: true }
-    ]
-  })
-  .filter()
+  .addManualFilters({ _id: { $in: req.query.ids } })
   .execute();
 ```
 
-در این حالت `_id` داخل `$and` هم به صورت recursive به `ObjectId` تبدیل می‌شود.
+### 4. Use Forbidden Fields for Sensitive Data
 
-استفاده از `$or`:
-
-```js
-const result = await new ApiFeatures(Product, req.query)
-  .addManualFilters({
-    $or: [
-      { ownerId: "665f0f6f4e7d9a2e2c123456" },
-      { createdById: "665f0f6f4e7d9a2e2c654321" }
-    ]
-  })
-  .filter()
-  .execute();
-```
-
-استفاده از `$in`:
-
-```js
-const result = await new ApiFeatures(Product, req.query)
-  .addManualFilters({
-    _id: {
-      $in: [
-        "665f0f6f4e7d9a2e2c123456",
-        "665f0f6f4e7d9a2e2c654321"
-      ]
-    }
-  })
-  .filter()
-  .execute();
-```
-
----
-
-## `search(fields)`
-
-از کلید `q` داخل `req.query` مقدار را می‌گیرد و با regex جستجو می‌کند. جستجو همیشه case-insensitive است.
-
-```txt
-GET /api/products?q=iphone
-```
-
-```js
-const result = await new ApiFeatures(Product, req.query)
-  .filter()
-  .search(["name", "description", "brand"])
-  .paginate()
-  .execute();
-```
-
-نکته: `q` جزو کلیدهای رزرو شده است و وارد filter معمولی نمی‌شود.
-
----
-
-## `sort()`
-
-از `sort` داخل query برای مرتب‌سازی استفاده می‌کند.
-
-```txt
-GET /api/products?sort=-createdAt,price
-```
-
-```js
-{
-  createdAt: -1,
-  price: 1
-}
-```
-
----
-
-## `limitFields(input)`
-
-برای کنترل فیلدهای خروجی استفاده می‌شود.
-
-```txt
-GET /api/products?fields=name,price,category
-```
-
-یا مستقیم:
-
-```js
-.limitFields("name,price")
-```
-
-حالت include:
-
-```js
-{ name: 1, price: 1 }
-```
-
-حالت exclude:
-
-```js
-{ description: 0 }
-```
-
-حالت mixed مجاز نیست:
-
-```txt
-GET /api/products?fields=name,-password
-```
-
----
-
-## `paginate()`
-
-برای صفحه‌بندی استفاده می‌شود.
-
-```txt
-GET /api/products?page=2&limit=10
-```
-
-```js
-[
-  { $skip: 10 },
-  { $limit: 10 }
-]
-```
-
----
-
-## `populate(input)`
-
-با استفاده از aggregation و `$lookup` داده‌های مرتبط را join می‌کند.
-
-```js
-.populate("user")
-```
-
-از query:
-
-```txt
-GET /api/posts?populate=user
-```
-
-چند populate:
-
-```js
-.populate(["user", "category"])
-```
-
-nested populate:
-
-```js
-.populate({
-  path: "user",
-  populate: {
-    path: "company",
-    populate: {
-      path: "country"
-    }
-  }
-})
-```
-
-یا با dot notation:
-
-```js
-.populate("user.company.country")
-```
-
-select در populate:
-
-```js
-.populate({
-  path: "user",
-  select: "name email"
-})
-```
-
-exclude:
-
-```js
-.populate({
-  path: "user",
-  select: "-password"
-})
-```
-
----
-
-## `execute(options)`
-
-pipeline را اجرا می‌کند.
-
-```js
-const result = await features.execute();
-```
-
-خروجی:
-
-```js
-{
-  success: true,
-  count: 25,
-  data: [...]
-}
-```
-
----
-
-# مدیریت خطاها
-
-## `HandleERROR`
-
-کلاس خطای اختصاصی.
-
-```js
-throw new HandleERROR("Product not found", 404);
-```
-
-```js
-{
-  message: "Product not found",
-  statusCode: 404,
-  status: "fail",
-  isOperational: true
-}
-```
-
-## `catchAsync`
-
-برای حذف `try/catch` تکراری در route handlerهای async.
-
-```js
-app.get(
-  "/products",
-  catchAsync(async (req, res, next) => {
-    const products = await Product.find();
-    res.json(products);
-  })
-);
-```
-
-## `errorHandler`
-
-middleware مرکزی خطاها:
-
-```js
-app.use(catchError);
-```
-
-نمونه خروجی:
-
-```json
-{
-  "status": "fail",
-  "success": false,
-  "message": "Product not found"
-}
-```
-
----
-
-# تنظیمات امنیتی
-
-برای override کردن تنظیمات پیش‌فرض، در root پروژه فایل زیر را بسازید:
-
-```txt
-security-config.js
-```
-
-```js
+```javascript
+// ✅ GOOD
 export const securityConfig = {
-  allowedOperators: ["eq", "ne", "gt", "gte", "lt", "lte", "in", "nin", "regex", "exists"],
-  forbiddenFields: ["password", "refreshToken", "resetPasswordToken"],
-  maxPipelineStages: 50,
-  accessLevels: {
-    guest: {
-      maxLimit: 20,
-      allowedPopulate: ["category"]
-    },
-    user: {
-      maxLimit: 100,
-      allowedPopulate: ["category", "createdBy"]
-    },
-    admin: {
-      maxLimit: 1000,
-      allowedPopulate: ["*"]
-    }
-  }
+  forbiddenFields: [
+    "password",
+    "refreshToken",
+    "apiKey",
+    "ssn",
+    "creditCard"
+  ]
 };
 ```
 
+### 5. Limit Pagination for Performance
+
+```javascript
+// ✅ GOOD
+accessLevels: {
+  guest: { maxLimit: 50 },      // 50 items max
+  user: { maxLimit: 100 },      // 100 items max
+  admin: { maxLimit: 1000 }     // 1000 items max
+}
+```
+
+### 6. Use Debug Mode in Development Only
+
+```javascript
+// ✅ GOOD
+const result = await features.execute({
+  debug: process.env.NODE_ENV === "development"
+});
+```
+
+### 7. Handle Errors Gracefully
+
+```javascript
+// ✅ GOOD
+try {
+  const result = await features.execute();
+  res.json(result);
+} catch (err) {
+  // catchAsync will forward to error middleware
+  throw err;
+}
+```
+
+### 8. Optimize Populate Paths
+
+```javascript
+// ✅ GOOD - Selective fields
+.populate({
+  path: "user",
+  select: "name email -_id"  // Only needed fields
+})
+
+// ❌ BAD - All fields
+.populate("user")  // Includes all user fields
+```
+
 ---
 
-# License
+## API Exports
 
-MIT
+```javascript
+import ApiFeatures from "vanta-api";           // Main class
+import { catchAsync } from "vanta-api";        // Async wrapper
+import { catchError } from "vanta-api";        // Error middleware
+import { HandleERROR } from "vanta-api";       // Error class
+```
+
+---
+
+## License
+
+MIT © Alireza Aghaee
+
+---
+
+## Support
+
+For issues, feature requests, or contributions, visit the repository.
