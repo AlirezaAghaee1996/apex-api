@@ -107,7 +107,7 @@ export class ApiFeatures {
         const direction = part.startsWith("-") ? -1 : 1;
         const field = part.replace(/^[-+]/, "");
 
-        if (validFields.has(field)) {
+        if (validFields.has(field) || field.includes('.')) {
           sortObj[field] = direction;
         }
       });
@@ -137,11 +137,6 @@ export class ApiFeatures {
 
     const project = {};
 
-    // Always exclude forbidden fields
-    for (const forbiddenField of forbiddenFields) {
-      project[forbiddenField] = 0;
-    }
-
     // Process user-requested fields
     for (const field of fields) {
       const cleanField = field.replace(/^-/, "");
@@ -154,6 +149,11 @@ export class ApiFeatures {
 
     if (Object.keys(project).length) {
       this.pipeline.push({ $project: project });
+    }
+
+    // Always exclude forbidden fields in a separate unset stage
+    if (forbiddenFields.length) {
+      this.pipeline.push({ $unset: forbiddenFields });
     }
 
     return this;
@@ -221,11 +221,11 @@ export class ApiFeatures {
           batchSize: options.batchSize || 100,
         });
 
-        data = [];
-
-        for await (const doc of cursor) {
-          data.push(doc);
-        }
+        return {
+          success: true,
+          count: countResult?.total || 0,
+          cursor,
+        };
       } else {
         data = await aggregation
           .allowDiskUse(Boolean(options.allowDiskUse))
@@ -333,15 +333,35 @@ export class ApiFeatures {
                 "$$item",
                 {
                   [path]: {
-                    $first: {
-                      $filter: {
-                        input: `$${tempLookupName}`,
-                        as: "joined",
-                        cond: {
-                          $eq: ["$$joined._id", `$$item.${path}`],
+                    $cond: [
+                      { $isArray: `$$item.${path}` },
+                      {
+                        $map: {
+                          input: `$$item.${path}`,
+                          as: "refId",
+                          in: {
+                            $first: {
+                              $filter: {
+                                input: `$${tempLookupName}`,
+                                as: "joined",
+                                cond: { $eq: ["$$joined._id", "$$refId"] },
+                              },
+                            },
+                          },
                         },
                       },
-                    },
+                      {
+                        $first: {
+                          $filter: {
+                            input: `$${tempLookupName}`,
+                            as: "joined",
+                            cond: {
+                              $eq: ["$$joined._id", `$$item.${path}`],
+                            },
+                          },
+                        },
+                      },
+                    ]
                   },
                 },
               ],
@@ -430,18 +450,38 @@ export class ApiFeatures {
                           `$$item.${objectPath}`,
                           {
                             [childPath]: {
-                              $first: {
-                                $filter: {
-                                  input: `$${tempLookupName}`,
-                                  as: "joined",
-                                  cond: {
-                                    $eq: [
-                                      "$$joined._id",
-                                      `$$item.${objectPath}.${childPath}`,
-                                    ],
+                              $cond: [
+                                { $isArray: `$$item.${objectPath}.${childPath}` },
+                                {
+                                  $map: {
+                                    input: `$$item.${objectPath}.${childPath}`,
+                                    as: "refId",
+                                    in: {
+                                      $first: {
+                                        $filter: {
+                                          input: `$${tempLookupName}`,
+                                          as: "joined",
+                                          cond: { $eq: ["$$joined._id", "$$refId"] },
+                                        },
+                                      },
+                                    },
                                   },
                                 },
-                              },
+                                {
+                                  $first: {
+                                    $filter: {
+                                      input: `$${tempLookupName}`,
+                                      as: "joined",
+                                      cond: {
+                                        $eq: [
+                                          "$$joined._id",
+                                          `$$item.${objectPath}.${childPath}`,
+                                        ],
+                                      },
+                                    },
+                                  },
+                                },
+                              ]
                             },
                           },
                         ],
@@ -531,18 +571,27 @@ export class ApiFeatures {
   _applyPopulateSelect({ path, select, isArray }) {
     const forbiddenFields = securityConfig.forbiddenFields || [];
     const parsed = this._parseSelect(select);
-    if (!parsed.fields.length && !forbiddenFields.length) return;
 
-    if (parsed.mode === "exclude" || forbiddenFields.length) {
+    if (parsed.mode === "exclude") {
       const excludeFields = new Set([
         ...forbiddenFields,
         ...parsed.fields,
       ]);
 
-      this.pipeline.push({
-        $unset: Array.from(excludeFields).map((field) => `${path}.${field}`),
-      });
+      if (excludeFields.size) {
+        this.pipeline.push({
+          $unset: Array.from(excludeFields).map((field) => `${path}.${field}`),
+        });
+      }
+      return;
+    }
 
+    if (!parsed.fields.length) {
+      if (forbiddenFields.length) {
+        this.pipeline.push({
+          $unset: forbiddenFields.map((field) => `${path}.${field}`),
+        });
+      }
       return;
     }
 
@@ -588,20 +637,31 @@ export class ApiFeatures {
   _applyNestedObjectSelectInsideArray({ arrayPath, objectPath, select }) {
     const forbiddenFields = securityConfig.forbiddenFields || [];
     const parsed = this._parseSelect(select);
-    if (!parsed.fields.length && !forbiddenFields.length) return;
 
-    if (parsed.mode === "exclude" || forbiddenFields.length) {
+    if (parsed.mode === "exclude") {
       const excludeFields = new Set([
         ...forbiddenFields,
         ...parsed.fields,
       ]);
 
-      this.pipeline.push({
-        $unset: Array.from(excludeFields).map(
-          (field) => `${arrayPath}.${objectPath}.${field}`,
-        ),
-      });
+      if (excludeFields.size) {
+        this.pipeline.push({
+          $unset: Array.from(excludeFields).map(
+            (field) => `${arrayPath}.${objectPath}.${field}`,
+          ),
+        });
+      }
+      return;
+    }
 
+    if (!parsed.fields.length) {
+      if (forbiddenFields.length) {
+        this.pipeline.push({
+          $unset: forbiddenFields.map(
+            (field) => `${arrayPath}.${objectPath}.${field}`,
+          ),
+        });
+      }
       return;
     }
 
@@ -639,7 +699,6 @@ export class ApiFeatures {
   }
 
   _parseSelect(select = "") {
-    const forbiddenFields = securityConfig.forbiddenFields || [];
     const fields = String(select)
       .split(/\s+/)
       .map((field) => field.trim())
@@ -665,10 +724,7 @@ export class ApiFeatures {
 
     return {
       mode: hasExclude ? "exclude" : "include",
-      fields: [
-        ...forbiddenFields,
-        ...fields.map((field) => field.replace(/^-/, "")),
-      ],
+      fields: fields.map((field) => field.replace(/^-/, "")),
     };
   }
 
@@ -699,6 +755,13 @@ export class ApiFeatures {
 
     const out = {};
 
+    const parseValue = (val) => {
+      if (typeof val === "string" && val.includes(",")) {
+        return val.split(",").map((v) => v.trim());
+      }
+      return val;
+    };
+
     for (const [rawKey, rawVal] of Object.entries(obj)) {
       const bracketMatch = rawKey.match(/^(.+)\[\$?(\w+)\]$/);
 
@@ -709,7 +772,7 @@ export class ApiFeatures {
         if (securityConfig.allowedOperators?.includes(cleanOp)) {
           out[field] = {
             ...(out[field] || {}),
-            [`$${cleanOp}`]: rawVal,
+            [`$${cleanOp}`]: parseValue(rawVal),
           };
         }
 
@@ -723,17 +786,18 @@ export class ApiFeatures {
           const cleanOp = op.replace(/^\$/, "");
 
           if (securityConfig.allowedOperators?.includes(cleanOp)) {
-            out[rawKey][`$${cleanOp}`] = val;
+            out[rawKey][`$${cleanOp}`] = parseValue(val);
           }
         }
 
         continue;
       }
 
-      if (typeof rawVal === "string" && rawVal.includes(",")) {
-        out[rawKey] = rawVal.split(",").map((v) => v.trim());
+      const parsedVal = parseValue(rawVal);
+      if (Array.isArray(parsedVal)) {
+        out[rawKey] = { $in: parsedVal };
       } else {
-        out[rawKey] = rawVal;
+        out[rawKey] = parsedVal;
       }
     }
 
@@ -773,10 +837,10 @@ export class ApiFeatures {
           return new ObjectId(node);
         }
 
-        if (/^[0-9]+$/.test(node)) {
-          return node.length > 1 && node.startsWith("0")
+        if (/^[0-9]+(\.[0-9]+)?$/.test(node)) {
+          return node.length > 1 && node.startsWith("0") && !node.includes(".")
             ? node
-            : parseInt(node, 10);
+            : parseFloat(node);
         }
       }
 
@@ -793,6 +857,7 @@ export class ApiFeatures {
       cleanKey === "_id" ||
       cleanKey === "id" ||
       cleanKey.endsWith("id") ||
+      cleanKey.endsWith("ids") ||
       cleanKey === "eq" ||
       cleanKey === "ne" ||
       cleanKey === "in" ||
